@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>go-get-request</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface2:  #21262d;
+  --border:    #30363d;
+  --primary:   #6e76e5;
+  --primary-h: #5a61d4;
+  --success:   #3fb950;
+  --danger:    #f85149;
+  --warning:   #d29922;
+  --info:      #58a6ff;
+  --text:      #e6edf3;
+  --muted:     #7d8590;
+  --r:         6px;
+  --font:      -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --mono:      'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 54px 1fr 260px;
+  overflow: hidden;
+  font-size: 13px;
+}
+
+/* ── Header ── */
+header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--primary);
+  letter-spacing: -0.3px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.logo-icon {
+  width: 22px; height: 22px;
+  background: var(--primary);
+  border-radius: 5px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  color: white;
+  font-weight: 800;
+}
+
+.header-sep { flex: 1; }
+
+.mock-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+.status-pill.running {
+  background: rgba(63,185,80,0.1);
+  border-color: rgba(63,185,80,0.3);
+  color: var(--success);
+}
+
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: background 0.2s;
+}
+.status-pill.running .status-dot {
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+
+.port-input {
+  width: 72px;
+  padding: 5px 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 13px;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+.port-input:focus { outline: none; border-color: var(--primary); }
+.port-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn {
+  padding: 6px 14px;
+  border-radius: var(--r);
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  transition: opacity 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.btn:hover  { opacity: 0.88; }
+.btn:active { transform: scale(0.97); }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-danger  { background: var(--danger);  color: #fff; }
+.btn-ghost   {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.btn-sm { padding: 4px 10px; font-size: 11px; }
+
+/* ── Main split ── */
+main {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.panel-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+}
+
+.route-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: background 0.1s;
+  border: 1px solid transparent;
+}
+.route-item:hover { background: var(--surface2); }
+.route-item.active {
+  background: var(--surface2);
+  border-color: var(--primary);
+}
+
+.m-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 5px;
+  border-radius: 3px;
+  min-width: 44px;
+  text-align: center;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+.m-GET     { background: rgba(63,185,80,0.15);  color: #3fb950; }
+.m-POST    { background: rgba(88,166,255,0.15); color: #58a6ff; }
+.m-PUT     { background: rgba(210,153,34,0.15); color: #d29922; }
+.m-PATCH   { background: rgba(188,140,255,0.15);color: #bc8cff; }
+.m-DELETE  { background: rgba(248,81,73,0.15);  color: #f85149; }
+.m-HEAD    { background: rgba(56,189,248,0.15); color: #38bdf8; }
+.m-OPTIONS { background: rgba(125,133,144,0.15);color: #7d8590; }
+.m-ANY     { background: rgba(125,133,144,0.15);color: #7d8590; }
+
+.route-path {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-size: 12px;
+}
+.route-status { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+
+.empty-hint {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* ── Editor ── */
+.editor {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.editor-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  gap: 14px;
+}
+.editor-empty svg { opacity: 0.2; }
+.editor-empty p { font-size: 13px; line-height: 1.6; text-align: center; }
+
+.editor-form {
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.editor-heading {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--muted);
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row3 { display: grid; grid-template-columns: 120px 1fr 120px; gap: 14px; }
+.col-span2 { grid-column: span 2; }
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.field input,
+.field select,
+.field textarea {
+  padding: 7px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  transition: border-color 0.15s;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus { outline: none; border-color: var(--primary); }
+.field select { cursor: pointer; }
+.field textarea {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.55;
+  resize: vertical;
+  min-height: 110px;
+}
+
+.headers-list { display: flex; flex-direction: column; gap: 6px; }
+.header-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+.header-row input {
+  padding: 6px 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.header-row input:focus { outline: none; border-color: var(--primary); }
+
+.icon-btn {
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 4px;
+  cursor: pointer; font-size: 15px; line-height: 1;
+  transition: opacity 0.1s;
+  flex-shrink: 0;
+}
+.icon-btn:hover { opacity: 0.75; }
+.icon-btn-add { background: rgba(110,118,229,0.15); color: var(--primary); }
+.icon-btn-del { background: rgba(248,81,73,0.1);    color: var(--danger); }
+
+.editor-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+/* ── Logs ── */
+.logs-panel {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.logs-count {
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.logs-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.log-row {
+  display: grid;
+  grid-template-columns: 50px 68px 1fr 90px 150px;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 16px;
+  border-bottom: 1px solid rgba(48,54,61,0.6);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.log-row:hover { background: var(--surface2); }
+
+.log-sc {
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 700;
+}
+.sc-2xx { color: var(--success); }
+.sc-3xx { color: var(--info); }
+.sc-4xx { color: var(--danger); }
+.sc-5xx { color: var(--danger); }
+
+.log-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text);
+}
+
+.match-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 3px;
+}
+.match-tag.yes { background: rgba(63,185,80,0.12);  color: var(--success); }
+.match-tag.no  { background: rgba(248,81,73,0.1);   color: var(--danger); }
+
+.log-time {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+
+/* ── Log detail drawer ── */
+.drawer {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex; align-items: flex-end;
+  z-index: 100;
+  animation: fadeIn 0.15s;
+}
+.drawer-panel {
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  width: 100%;
+  max-height: 65vh;
+  overflow-y: auto;
+  padding: 20px 24px 28px;
+  animation: slideUp 0.2s ease;
+}
+.drawer-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.drawer-title { font-size: 14px; font-weight: 600; }
+.drawer-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 20px; line-height: 1;
+  padding: 2px 6px; border-radius: 4px;
+}
+.drawer-close:hover { background: var(--surface2); color: var(--text); }
+.drawer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.drawer-section h4 {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px;
+}
+.code-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: pre;
+  min-height: 40px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+/* ── Toast ── */
+.toasts {
+  position: fixed; bottom: 18px; right: 18px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 200;
+}
+.toast {
+  padding: 9px 15px;
+  border-radius: var(--r);
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  animation: slideInRight 0.2s ease;
+  max-width: 280px;
+}
+.toast.ok  { background: var(--success); }
+.toast.err { background: var(--danger); }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ── Animations ── */
+@keyframes fadeIn    { from { opacity: 0; }             to { opacity: 1; } }
+@keyframes slideUp   { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header>
+  <div class="logo">
+    <div class="logo-icon">G</div>
+    go-get-request
+  </div>
+
+  <div class="header-sep"></div>
+
+  <div class="mock-controls">
+    <div class="status-pill" id="statusPill">
+      <div class="status-dot"></div>
+      <span id="statusText">Stopped</span>
+    </div>
+    <input type="number" id="portInput" class="port-input" value="3000" min="1" max="65535" title="Mock server port">
+    <button class="btn btn-success btn-sm" id="startBtn" onclick="startMock()">▶ Start</button>
+    <button class="btn btn-danger btn-sm" id="stopBtn" style="display:none" onclick="stopMock()">■ Stop</button>
+  </div>
+</header>
+
+<!-- Main -->
+<main>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="panel-header">
+      <span class="panel-title">Routes</span>
+      <button class="btn btn-primary btn-sm" onclick="newRoute()">+ New</button>
+    </div>
+    <div class="route-list" id="routeList">
+      <div class="empty-hint">No routes yet.<br>Click <strong>+ New</strong> to create one.</div>
+    </div>
+  </aside>
+
+  <!-- Editor -->
+  <section class="editor" id="editor">
+    <div class="editor-empty" id="editorEmpty">
+      <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <rect x="3" y="3" width="18" height="18" rx="2"/>
+        <path d="M3 9h18M9 21V9"/>
+      </svg>
+      <p>Select a route to edit it<br>or click <strong>+ New</strong> to create one.</p>
+    </div>
+
+    <div class="editor-form" id="editorForm" style="display:none">
+      <div class="editor-heading" id="editorHeading">New Route</div>
+
+      <div class="row3">
+        <div class="field">
+          <label>Method</label>
+          <select id="fMethod">
+            <option>GET</option>
+            <option>POST</option>
+            <option>PUT</option>
+            <option>PATCH</option>
+            <option>DELETE</option>
+            <option>HEAD</option>
+            <option>OPTIONS</option>
+            <option value="*">* (any)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Path</label>
+          <input type="text" id="fPath" placeholder="/api/resource" spellcheck="false">
+        </div>
+        <div class="field">
+          <label>Status Code</label>
+          <input type="number" id="fStatus" value="200" min="100" max="599">
+        </div>
+      </div>
+
+      <div class="row2">
+        <div class="field">
+          <label>Delay (ms)</label>
+          <input type="number" id="fDelay" value="0" min="0" placeholder="0">
+        </div>
+        <div></div>
+      </div>
+
+      <div class="field">
+        <label>Response Headers</label>
+        <div class="headers-list" id="headersList"></div>
+        <button class="btn btn-ghost btn-sm" style="margin-top:7px;align-self:flex-start" onclick="addHeader()">
+          + Add Header
+        </button>
+      </div>
+
+      <div class="field">
+        <label>Response Body</label>
+        <textarea id="fBody" placeholder='{"message": "success"}'></textarea>
+      </div>
+
+      <div class="editor-actions">
+        <button class="btn btn-primary" onclick="saveRoute()">Save Route</button>
+        <button class="btn btn-ghost" id="deleteBtn" onclick="deleteRoute()" style="display:none">Delete</button>
+        <button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- Logs panel -->
+<footer class="logs-panel">
+  <div class="panel-header">
+    <span class="panel-title">
+      Request Logs &nbsp;
+      <span class="logs-count" id="logsCount">0</span>
+    </span>
+    <button class="btn btn-ghost btn-sm" onclick="clearLogs()">Clear</button>
+  </div>
+  <div class="logs-body" id="logsBody">
+    <div class="empty-hint">No requests captured yet. Start the mock server and call it from your frontend.</div>
+  </div>
+</footer>
+
+<!-- Log detail drawer -->
+<div class="drawer" id="drawer" style="display:none" onclick="closeDrawer(event)">
+  <div class="drawer-panel" id="drawerPanel">
+    <div class="drawer-header">
+      <span class="drawer-title" id="drawerTitle"></span>
+      <button class="drawer-close" onclick="closeDrawer()">×</button>
+    </div>
+    <div class="drawer-grid">
+      <div class="drawer-section">
+        <h4>Request Headers</h4>
+        <div class="code-block" id="drawerReqHeaders"></div>
+      </div>
+      <div class="drawer-section">
+        <h4>Request Body</h4>
+        <div class="code-block" id="drawerReqBody"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div class="toasts" id="toasts"></div>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let routes = {};       // id → Route
+let logs   = [];       // Log[]
+let selectedId = null; // currently edited route id
+let isNew = false;
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'ok') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts,
+  });
+  return res;
+}
+
+// ── Method helpers ────────────────────────────────────────────────────────────
+function mClass(m) {
+  const map = { GET:'m-GET', POST:'m-POST', PUT:'m-PUT', PATCH:'m-PATCH',
+                DELETE:'m-DELETE', HEAD:'m-HEAD', OPTIONS:'m-OPTIONS' };
+  return map[m] || 'm-ANY';
+}
+
+function mLabel(m) { return m === '*' ? 'ANY' : m; }
+
+function scClass(code) {
+  if (code >= 500) return 'sc-5xx';
+  if (code >= 400) return 'sc-4xx';
+  if (code >= 300) return 'sc-3xx';
+  return 'sc-2xx';
+}
+
+function fmtTime(ts) {
+  return new Date(ts).toLocaleTimeString('en-US', { hour12: false });
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Routes ────────────────────────────────────────────────────────────────────
+async function loadRoutes() {
+  const res = await api('/api/routes');
+  if (!res.ok) return;
+  const arr = await res.json();
+  routes = {};
+  (arr || []).forEach(r => routes[r.id] = r);
+  renderRoutes();
+}
+
+function renderRoutes() {
+  const list = document.getElementById('routeList');
+  const ids = Object.keys(routes);
+  if (ids.length === 0) {
+    list.innerHTML = '<div class="empty-hint">No routes yet.<br>Click <strong>+ New</strong> to create one.</div>';
+    return;
+  }
+  list.innerHTML = ids.map(id => {
+    const r = routes[id];
+    const active = id === selectedId ? ' active' : '';
+    return `<div class="route-item${active}" onclick="selectRoute('${esc(id)}')">
+      <span class="m-badge ${mClass(r.method)}">${mLabel(r.method)}</span>
+      <span class="route-path" title="${esc(r.path)}">${esc(r.path)}</span>
+      <span class="route-status">${r.statusCode}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectRoute(id) {
+  selectedId = id;
+  isNew = false;
+  showForm(routes[id]);
+  renderRoutes();
+}
+
+function newRoute() {
+  selectedId = null;
+  isNew = true;
+  showForm(null);
+  renderRoutes();
+}
+
+function showForm(r) {
+  document.getElementById('editorEmpty').style.display = 'none';
+  document.getElementById('editorForm').style.display = '';
+  document.getElementById('editorHeading').textContent = r ? 'Edit Route' : 'New Route';
+
+  if (r) {
+    document.getElementById('fMethod').value = r.method;
+    document.getElementById('fPath').value   = r.path;
+    document.getElementById('fStatus').value = r.statusCode;
+    document.getElementById('fDelay').value  = r.delayMs || 0;
+    document.getElementById('fBody').value   = r.responseBody || '';
+    document.getElementById('deleteBtn').style.display = '';
+    populateHeaders(r.responseHeaders || {});
+  } else {
+    document.getElementById('fMethod').value = 'GET';
+    document.getElementById('fPath').value   = '';
+    document.getElementById('fStatus').value = '200';
+    document.getElementById('fDelay').value  = '0';
+    document.getElementById('fBody').value   = '';
+    document.getElementById('deleteBtn').style.display = 'none';
+    populateHeaders({});
+  }
+}
+
+function populateHeaders(obj) {
+  const list = document.getElementById('headersList');
+  const entries = Object.entries(obj);
+  list.innerHTML = entries.map(([k, v]) => headerRowHTML(k, v)).join('');
+}
+
+let hCounter = 0;
+function headerRowHTML(k = '', v = '') {
+  const id = `hr${++hCounter}`;
+  return `<div class="header-row" id="${id}">
+    <input type="text" placeholder="Header-Name" value="${esc(k)}" class="hk" spellcheck="false">
+    <input type="text" placeholder="value"        value="${esc(v)}" class="hv" spellcheck="false">
+    <button class="icon-btn icon-btn-del" onclick="removeHeader('${id}')" title="Remove">×</button>
+  </div>`;
+}
+
+function addHeader() {
+  const list = document.getElementById('headersList');
+  const div = document.createElement('div');
+  div.innerHTML = headerRowHTML();
+  list.appendChild(div.firstElementChild);
+}
+
+function removeHeader(id) {
+  document.getElementById(id)?.remove();
+}
+
+function collectHeaders() {
+  const headers = {};
+  document.querySelectorAll('#headersList .header-row').forEach(row => {
+    const k = row.querySelector('.hk').value.trim();
+    const v = row.querySelector('.hv').value.trim();
+    if (k) headers[k] = v;
+  });
+  return headers;
+}
+
+async function saveRoute() {
+  const path = document.getElementById('fPath').value.trim();
+  if (!path) { toast('Path is required', 'err'); return; }
+
+  const payload = {
+    method:          document.getElementById('fMethod').value,
+    path:            path.startsWith('/') ? path : '/' + path,
+    statusCode:      parseInt(document.getElementById('fStatus').value) || 200,
+    delayMs:         parseInt(document.getElementById('fDelay').value)  || 0,
+    responseBody:    document.getElementById('fBody').value,
+    responseHeaders: collectHeaders(),
+  };
+
+  let res;
+  if (isNew) {
+    res = await api('/api/routes', { method: 'POST', body: JSON.stringify(payload) });
+    if (res.ok) {
+      const created = await res.json();
+      routes[created.id] = created;
+      selectedId = created.id;
+      isNew = false;
+      document.getElementById('deleteBtn').style.display = '';
+      document.getElementById('editorHeading').textContent = 'Edit Route';
+      toast('Route created');
+    }
+  } else {
+    res = await api(`/api/routes/${selectedId}`, { method: 'PUT', body: JSON.stringify(payload) });
+    if (res.ok) {
+      const updated = await res.json();
+      routes[updated.id] = updated;
+      toast('Route saved');
+    }
+  }
+
+  if (!res.ok) {
+    const msg = await res.text();
+    toast(msg || 'Save failed', 'err');
+    return;
+  }
+  renderRoutes();
+}
+
+async function deleteRoute() {
+  if (!selectedId || !confirm('Delete this route?')) return;
+  const res = await api(`/api/routes/${selectedId}`, { method: 'DELETE' });
+  if (res.ok) {
+    delete routes[selectedId];
+    cancelEdit();
+    toast('Route deleted');
+  } else {
+    toast('Delete failed', 'err');
+  }
+}
+
+function cancelEdit() {
+  selectedId = null;
+  isNew = false;
+  document.getElementById('editorEmpty').style.display = '';
+  document.getElementById('editorForm').style.display = 'none';
+  renderRoutes();
+}
+
+// ── Mock server ───────────────────────────────────────────────────────────────
+async function startMock() {
+  const port = parseInt(document.getElementById('portInput').value) || 3000;
+  const res = await api('/api/mock/start', {
+    method: 'POST',
+    body: JSON.stringify({ port }),
+  });
+  if (!res.ok) {
+    const msg = await res.text();
+    toast(msg || 'Could not start', 'err');
+  }
+}
+
+async function stopMock() {
+  const res = await api('/api/mock/stop', { method: 'POST' });
+  if (!res.ok) {
+    const msg = await res.text();
+    toast(msg || 'Could not stop', 'err');
+  }
+}
+
+function applyStatus(running, port) {
+  const pill     = document.getElementById('statusPill');
+  const txt      = document.getElementById('statusText');
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn  = document.getElementById('stopBtn');
+  const portIn   = document.getElementById('portInput');
+
+  if (running) {
+    pill.classList.add('running');
+    txt.textContent = `Running :${port}`;
+    startBtn.style.display = 'none';
+    stopBtn.style.display  = '';
+    portIn.disabled = true;
+  } else {
+    pill.classList.remove('running');
+    txt.textContent = 'Stopped';
+    startBtn.style.display = '';
+    stopBtn.style.display  = 'none';
+    portIn.disabled = false;
+  }
+}
+
+// ── Logs ──────────────────────────────────────────────────────────────────────
+function renderLogs() {
+  const body = document.getElementById('logsBody');
+  document.getElementById('logsCount').textContent = logs.length;
+
+  if (logs.length === 0) {
+    body.innerHTML = '<div class="empty-hint">No requests captured yet. Start the mock server and call it from your frontend.</div>';
+    return;
+  }
+
+  body.innerHTML = logs.map((l, i) => `
+    <div class="log-row" onclick="openDrawer(${i})">
+      <span class="m-badge ${mClass(l.method)}">${mLabel(l.method)}</span>
+      <span class="log-sc ${scClass(l.statusCode)}">${l.statusCode}</span>
+      <span class="log-path" title="${esc(l.path)}">${esc(l.path)}</span>
+      <span class="match-tag ${l.matched ? 'yes' : 'no'}">${l.matched ? 'matched' : 'no match'}</span>
+      <span class="log-time">${fmtTime(l.timestamp)}</span>
+    </div>`).join('');
+}
+
+async function clearLogs() {
+  await api('/api/logs/clear', { method: 'POST' });
+}
+
+// ── Drawer ────────────────────────────────────────────────────────────────────
+function openDrawer(idx) {
+  const l = logs[idx];
+  if (!l) return;
+
+  document.getElementById('drawerTitle').textContent =
+    `${l.method} ${l.path}  →  ${l.statusCode}`;
+
+  const headers = Object.entries(l.headers || {})
+    .map(([k, v]) => `${k}: ${v}`).join('\n') || '(none)';
+  document.getElementById('drawerReqHeaders').textContent = headers;
+
+  let body = l.body || '(empty)';
+  try {
+    if (body !== '(empty)') body = JSON.stringify(JSON.parse(body), null, 2);
+  } catch {}
+  document.getElementById('drawerReqBody').textContent = body;
+
+  document.getElementById('drawer').style.display = 'flex';
+}
+
+function closeDrawer(e) {
+  if (!e || e.target === document.getElementById('drawer')) {
+    document.getElementById('drawer').style.display = 'none';
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeDrawer();
+});
+
+// ── SSE ───────────────────────────────────────────────────────────────────────
+function connectSSE() {
+  const es = new EventSource('/api/events');
+
+  es.onmessage = ({ data }) => {
+    const msg = JSON.parse(data);
+    if (msg.type === 'status') {
+      applyStatus(msg.running, msg.port);
+    } else if (msg.type === 'log') {
+      logs.unshift(msg.data);
+      if (logs.length > 500) logs.pop();
+      renderLogs();
+    } else if (msg.type === 'clear') {
+      logs = [];
+      renderLogs();
+    }
+  };
+
+  es.onerror = () => {
+    es.close();
+    setTimeout(connectSSE, 3000);
+  };
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+(async () => {
+  await loadRoutes();
+  renderLogs();
+  connectSSE();
+
+  const res = await api('/api/mock/status');
+  if (res.ok) {
+    const { running, port } = await res.json();
+    applyStatus(running, port);
+  }
+})();
+</script>
+</body>
+</html>
