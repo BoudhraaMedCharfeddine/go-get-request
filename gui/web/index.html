@@ -62,9 +62,7 @@ header {
   background: var(--primary);
   border-radius: 5px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 12px;
-  color: white;
-  font-weight: 800;
+  font-size: 12px; color: white; font-weight: 800;
 }
 
 .header-sep { flex: 1; }
@@ -141,7 +139,7 @@ header {
 }
 .btn-sm { padding: 4px 10px; font-size: 11px; }
 
-/* ── Main split ── */
+/* ── Main ── */
 main {
   display: grid;
   grid-template-columns: 260px 1fr;
@@ -224,7 +222,12 @@ main {
   color: var(--text);
   font-size: 12px;
 }
-.route-status { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+
+.route-meta {
+  display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.route-status { color: var(--muted); font-size: 11px; }
+.lock-icon { font-size: 10px; opacity: 0.7; }
 
 .empty-hint {
   padding: 28px 16px;
@@ -271,9 +274,8 @@ main {
   border-bottom: 1px solid var(--border);
 }
 
-.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .row3 { display: grid; grid-template-columns: 120px 1fr 120px; gap: 14px; }
-.col-span2 { grid-column: span 2; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
 .field {
   display: flex;
@@ -311,6 +313,25 @@ main {
   min-height: 110px;
 }
 
+/* Protected toggle */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s;
+}
+.check-row:hover { border-color: var(--primary); }
+.check-row input[type=checkbox] { accent-color: var(--primary); width: 14px; height: 14px; cursor: pointer; }
+.check-row-label { font-size: 13px; color: var(--text); flex: 1; }
+.check-row-sub { font-size: 11px; color: var(--muted); }
+
+/* Headers */
 .headers-list { display: flex; flex-direction: column; gap: 6px; }
 .header-row {
   display: grid;
@@ -366,14 +387,11 @@ main {
   font-weight: 600;
 }
 
-.logs-body {
-  flex: 1;
-  overflow-y: auto;
-}
+.logs-body { flex: 1; overflow-y: auto; }
 
 .log-row {
   display: grid;
-  grid-template-columns: 50px 68px 1fr 90px 150px;
+  grid-template-columns: 50px 68px 1fr 110px 150px;
   gap: 10px;
   align-items: center;
   padding: 6px 16px;
@@ -383,11 +401,7 @@ main {
 }
 .log-row:hover { background: var(--surface2); }
 
-.log-sc {
-  font-family: var(--mono);
-  font-size: 12px;
-  font-weight: 700;
-}
+.log-sc { font-family: var(--mono); font-size: 12px; font-weight: 700; }
 .sc-2xx { color: var(--success); }
 .sc-3xx { color: var(--info); }
 .sc-4xx { color: var(--danger); }
@@ -399,24 +413,19 @@ main {
   white-space: nowrap;
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--text);
 }
 
-.match-tag {
+.tag {
   font-size: 10px;
   font-weight: 600;
   padding: 2px 7px;
   border-radius: 3px;
 }
-.match-tag.yes { background: rgba(63,185,80,0.12);  color: var(--success); }
-.match-tag.no  { background: rgba(248,81,73,0.1);   color: var(--danger); }
+.tag-match   { background: rgba(63,185,80,0.12);  color: var(--success); }
+.tag-nomatch { background: rgba(248,81,73,0.1);   color: var(--danger); }
+.tag-auth    { background: rgba(210,153,34,0.15); color: var(--warning); }
 
-.log-time {
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--muted);
-  text-align: right;
-}
+.log-time { font-family: var(--mono); font-size: 11px; color: var(--muted); text-align: right; }
 
 /* ── Log detail drawer ── */
 .drawer {
@@ -443,8 +452,7 @@ main {
 .drawer-title { font-size: 14px; font-weight: 600; }
 .drawer-close {
   background: none; border: none; cursor: pointer;
-  color: var(--muted); font-size: 20px; line-height: 1;
-  padding: 2px 6px; border-radius: 4px;
+  color: var(--muted); font-size: 20px; padding: 2px 6px; border-radius: 4px;
 }
 .drawer-close:hover { background: var(--surface2); color: var(--text); }
 .drawer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -460,7 +468,6 @@ main {
   font-family: var(--mono);
   font-size: 11px;
   line-height: 1.6;
-  color: var(--text);
   overflow-x: auto;
   white-space: pre;
   min-height: 40px;
@@ -468,18 +475,94 @@ main {
   overflow-y: auto;
 }
 
+/* ── Auth Modal ── */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.65);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200;
+  animation: fadeIn 0.15s;
+}
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  width: 540px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideDown 0.2s ease;
+}
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.modal-title {
+  font-size: 14px; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+}
+.modal-title-icon { font-size: 16px; }
+.modal-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--muted); font-size: 20px; padding: 2px 6px; border-radius: 4px;
+}
+.modal-close:hover { background: var(--surface2); color: var(--text); }
+.modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; }
+.modal-footer {
+  padding: 14px 22px 18px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
+.auth-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600;
+  padding: 3px 9px; border-radius: 20px;
+}
+.auth-badge.on  { background: rgba(63,185,80,0.12); color: var(--success); }
+.auth-badge.off { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+
+.secret-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+.secret-row .field { margin: 0; }
+
+.curl-block {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre;
+  overflow-x: auto;
+  position: relative;
+}
+.copy-btn {
+  position: absolute; top: 8px; right: 8px;
+  padding: 3px 8px; font-size: 10px; font-weight: 600;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 4px; cursor: pointer; color: var(--muted);
+}
+.copy-btn:hover { color: var(--text); }
+
+.section-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--muted);
+  display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
 /* ── Toast ── */
 .toasts {
   position: fixed; bottom: 18px; right: 18px;
   display: flex; flex-direction: column; gap: 8px;
-  z-index: 200;
+  z-index: 300;
 }
 .toast {
-  padding: 9px 15px;
-  border-radius: var(--r);
-  font-size: 12px;
-  font-weight: 500;
-  color: white;
+  padding: 9px 15px; border-radius: var(--r);
+  font-size: 12px; font-weight: 500; color: white;
   animation: slideInRight 0.2s ease;
   max-width: 280px;
 }
@@ -493,14 +576,15 @@ main {
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
 
 /* ── Animations ── */
-@keyframes fadeIn    { from { opacity: 0; }             to { opacity: 1; } }
-@keyframes slideUp   { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fadeIn       { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp      { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes slideDown    { from { transform: translateY(-15px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes slideInRight { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
 </style>
 </head>
 <body>
 
-<!-- Header -->
+<!-- ── Header ── -->
 <header>
   <div class="logo">
     <div class="logo-icon">G</div>
@@ -510,6 +594,9 @@ main {
   <div class="header-sep"></div>
 
   <div class="mock-controls">
+    <button class="btn btn-ghost btn-sm" onclick="openAuthModal()" id="authBtn" title="JWT auth simulation">
+      🔐 Auth
+    </button>
     <div class="status-pill" id="statusPill">
       <div class="status-dot"></div>
       <span id="statusText">Stopped</span>
@@ -520,7 +607,7 @@ main {
   </div>
 </header>
 
-<!-- Main -->
+<!-- ── Main ── -->
 <main>
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -550,14 +637,9 @@ main {
         <div class="field">
           <label>Method</label>
           <select id="fMethod">
-            <option>GET</option>
-            <option>POST</option>
-            <option>PUT</option>
-            <option>PATCH</option>
-            <option>DELETE</option>
-            <option>HEAD</option>
-            <option>OPTIONS</option>
-            <option value="*">* (any)</option>
+            <option>GET</option><option>POST</option><option>PUT</option>
+            <option>PATCH</option><option>DELETE</option><option>HEAD</option>
+            <option>OPTIONS</option><option value="*">* (any)</option>
           </select>
         </div>
         <div class="field">
@@ -573,9 +655,21 @@ main {
       <div class="row2">
         <div class="field">
           <label>Delay (ms)</label>
-          <input type="number" id="fDelay" value="0" min="0" placeholder="0">
+          <input type="number" id="fDelay" value="0" min="0">
         </div>
         <div></div>
+      </div>
+
+      <!-- Protected toggle -->
+      <div class="field">
+        <label>Security</label>
+        <label class="check-row" for="fProtected">
+          <input type="checkbox" id="fProtected">
+          <div>
+            <div class="check-row-label">🔒 Require JWT token</div>
+            <div class="check-row-sub">Returns 401 if Authorization: Bearer is missing or invalid</div>
+          </div>
+        </label>
       </div>
 
       <div class="field">
@@ -600,7 +694,7 @@ main {
   </section>
 </main>
 
-<!-- Logs panel -->
+<!-- ── Logs panel ── -->
 <footer class="logs-panel">
   <div class="panel-header">
     <span class="panel-title">
@@ -614,7 +708,7 @@ main {
   </div>
 </footer>
 
-<!-- Log detail drawer -->
+<!-- ── Log detail drawer ── -->
 <div class="drawer" id="drawer" style="display:none" onclick="closeDrawer(event)">
   <div class="drawer-panel" id="drawerPanel">
     <div class="drawer-header">
@@ -634,15 +728,90 @@ main {
   </div>
 </div>
 
-<!-- Toasts -->
+<!-- ── Auth Modal ── -->
+<div class="modal-backdrop" id="authModal" style="display:none" onclick="onAuthBackdrop(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">
+        <span class="modal-title-icon">🔐</span>
+        JWT Auth Simulation
+        <span class="auth-badge off" id="authStatusBadge">disabled</span>
+      </div>
+      <button class="modal-close" onclick="closeAuthModal()">×</button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Enable toggle -->
+      <label class="check-row" for="authEnabled" style="border-color: var(--primary)">
+        <input type="checkbox" id="authEnabled" onchange="onAuthEnabledChange()">
+        <div>
+          <div class="check-row-label">Enable JWT auth simulation</div>
+          <div class="check-row-sub">Intercepts the login endpoint and enforces tokens on protected routes</div>
+        </div>
+      </label>
+
+      <div id="authFields">
+        <!-- Login endpoint -->
+        <div class="row2">
+          <div class="field">
+            <label>Login endpoint path</label>
+            <input type="text" id="authLoginPath" value="/auth/login" spellcheck="false" oninput="updateCurlExample()">
+          </div>
+          <div class="field">
+            <label>Token TTL (seconds)</label>
+            <input type="number" id="authTTL" value="3600" min="1">
+          </div>
+        </div>
+
+        <!-- Credentials -->
+        <div class="section-label">Mock Credentials</div>
+        <div class="row2">
+          <div class="field">
+            <label>Username</label>
+            <input type="text" id="authUsername" value="admin" oninput="updateCurlExample()">
+          </div>
+          <div class="field">
+            <label>Password</label>
+            <input type="text" id="authPassword" value="secret" oninput="updateCurlExample()">
+          </div>
+        </div>
+
+        <!-- Secret -->
+        <div class="section-label">Signing Secret (HS256)</div>
+        <div class="secret-row">
+          <div class="field">
+            <label>Secret key</label>
+            <input type="text" id="authSecret" readonly style="font-family:var(--mono);font-size:11px">
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="regenSecret()" style="margin-bottom:1px">↺ Regen</button>
+        </div>
+
+        <!-- Curl example -->
+        <div class="section-label">Example</div>
+        <div style="position:relative">
+          <div class="curl-block" id="curlExample"></div>
+          <button class="copy-btn" onclick="copyCurl()">Copy</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeAuthModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveAuth()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toasts ── -->
 <div class="toasts" id="toasts"></div>
 
 <script>
 // ── State ─────────────────────────────────────────────────────────────────────
-let routes = {};       // id → Route
-let logs   = [];       // Log[]
-let selectedId = null; // currently edited route id
-let isNew = false;
+let routes = {};
+let logs   = [];
+let selectedId = null;
+let isNew      = false;
+let authCfg    = {};
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function toast(msg, type = 'ok') {
@@ -653,38 +822,28 @@ function toast(msg, type = 'ok') {
   setTimeout(() => el.remove(), 3000);
 }
 
-// ── API helper ────────────────────────────────────────────────────────────────
+// ── API ───────────────────────────────────────────────────────────────────────
 async function api(path, opts = {}) {
-  const res = await fetch(path, {
-    headers: { 'Content-Type': 'application/json' },
-    ...opts,
-  });
-  return res;
+  return fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
 }
 
-// ── Method helpers ────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function mClass(m) {
-  const map = { GET:'m-GET', POST:'m-POST', PUT:'m-PUT', PATCH:'m-PATCH',
-                DELETE:'m-DELETE', HEAD:'m-HEAD', OPTIONS:'m-OPTIONS' };
-  return map[m] || 'm-ANY';
+  return { GET:'m-GET', POST:'m-POST', PUT:'m-PUT', PATCH:'m-PATCH',
+           DELETE:'m-DELETE', HEAD:'m-HEAD', OPTIONS:'m-OPTIONS' }[m] || 'm-ANY';
 }
-
 function mLabel(m) { return m === '*' ? 'ANY' : m; }
-
-function scClass(code) {
-  if (code >= 500) return 'sc-5xx';
-  if (code >= 400) return 'sc-4xx';
-  if (code >= 300) return 'sc-3xx';
+function scClass(c) {
+  if (c >= 500) return 'sc-5xx';
+  if (c >= 400) return 'sc-4xx';
+  if (c >= 300) return 'sc-3xx';
   return 'sc-2xx';
 }
-
 function fmtTime(ts) {
   return new Date(ts).toLocaleTimeString('en-US', { hour12: false });
 }
-
 function esc(s) {
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
@@ -701,17 +860,18 @@ async function loadRoutes() {
 function renderRoutes() {
   const list = document.getElementById('routeList');
   const ids = Object.keys(routes);
-  if (ids.length === 0) {
+  if (!ids.length) {
     list.innerHTML = '<div class="empty-hint">No routes yet.<br>Click <strong>+ New</strong> to create one.</div>';
     return;
   }
   list.innerHTML = ids.map(id => {
     const r = routes[id];
     const active = id === selectedId ? ' active' : '';
+    const lock = r.protected ? '<span class="lock-icon" title="Protected">🔒</span>' : '';
     return `<div class="route-item${active}" onclick="selectRoute('${esc(id)}')">
       <span class="m-badge ${mClass(r.method)}">${mLabel(r.method)}</span>
       <span class="route-path" title="${esc(r.path)}">${esc(r.path)}</span>
-      <span class="route-status">${r.statusCode}</span>
+      <span class="route-meta">${lock}<span class="route-status">${r.statusCode}</span></span>
     </div>`;
   }).join('');
 }
@@ -732,23 +892,25 @@ function newRoute() {
 
 function showForm(r) {
   document.getElementById('editorEmpty').style.display = 'none';
-  document.getElementById('editorForm').style.display = '';
-  document.getElementById('editorHeading').textContent = r ? 'Edit Route' : 'New Route';
+  document.getElementById('editorForm').style.display  = '';
+  document.getElementById('editorHeading').textContent  = r ? 'Edit Route' : 'New Route';
 
   if (r) {
-    document.getElementById('fMethod').value = r.method;
-    document.getElementById('fPath').value   = r.path;
-    document.getElementById('fStatus').value = r.statusCode;
-    document.getElementById('fDelay').value  = r.delayMs || 0;
-    document.getElementById('fBody').value   = r.responseBody || '';
+    document.getElementById('fMethod').value    = r.method;
+    document.getElementById('fPath').value      = r.path;
+    document.getElementById('fStatus').value    = r.statusCode;
+    document.getElementById('fDelay').value     = r.delayMs || 0;
+    document.getElementById('fBody').value      = r.responseBody || '';
+    document.getElementById('fProtected').checked = !!r.protected;
     document.getElementById('deleteBtn').style.display = '';
     populateHeaders(r.responseHeaders || {});
   } else {
-    document.getElementById('fMethod').value = 'GET';
-    document.getElementById('fPath').value   = '';
-    document.getElementById('fStatus').value = '200';
-    document.getElementById('fDelay').value  = '0';
-    document.getElementById('fBody').value   = '';
+    document.getElementById('fMethod').value    = 'GET';
+    document.getElementById('fPath').value      = '';
+    document.getElementById('fStatus').value    = '200';
+    document.getElementById('fDelay').value     = '0';
+    document.getElementById('fBody').value      = '';
+    document.getElementById('fProtected').checked = false;
     document.getElementById('deleteBtn').style.display = 'none';
     populateHeaders({});
   }
@@ -756,8 +918,7 @@ function showForm(r) {
 
 function populateHeaders(obj) {
   const list = document.getElementById('headersList');
-  const entries = Object.entries(obj);
-  list.innerHTML = entries.map(([k, v]) => headerRowHTML(k, v)).join('');
+  list.innerHTML = Object.entries(obj).map(([k, v]) => headerRowHTML(k, v)).join('');
 }
 
 let hCounter = 0;
@@ -766,29 +927,26 @@ function headerRowHTML(k = '', v = '') {
   return `<div class="header-row" id="${id}">
     <input type="text" placeholder="Header-Name" value="${esc(k)}" class="hk" spellcheck="false">
     <input type="text" placeholder="value"        value="${esc(v)}" class="hv" spellcheck="false">
-    <button class="icon-btn icon-btn-del" onclick="removeHeader('${id}')" title="Remove">×</button>
+    <button class="icon-btn icon-btn-del" onclick="removeHeader('${id}')">×</button>
   </div>`;
 }
 
 function addHeader() {
-  const list = document.getElementById('headersList');
   const div = document.createElement('div');
   div.innerHTML = headerRowHTML();
-  list.appendChild(div.firstElementChild);
+  document.getElementById('headersList').appendChild(div.firstElementChild);
 }
 
-function removeHeader(id) {
-  document.getElementById(id)?.remove();
-}
+function removeHeader(id) { document.getElementById(id)?.remove(); }
 
 function collectHeaders() {
-  const headers = {};
+  const h = {};
   document.querySelectorAll('#headersList .header-row').forEach(row => {
     const k = row.querySelector('.hk').value.trim();
     const v = row.querySelector('.hv').value.trim();
-    if (k) headers[k] = v;
+    if (k) h[k] = v;
   });
-  return headers;
+  return h;
 }
 
 async function saveRoute() {
@@ -799,7 +957,8 @@ async function saveRoute() {
     method:          document.getElementById('fMethod').value,
     path:            path.startsWith('/') ? path : '/' + path,
     statusCode:      parseInt(document.getElementById('fStatus').value) || 200,
-    delayMs:         parseInt(document.getElementById('fDelay').value)  || 0,
+    delayMs:         parseInt(document.getElementById('fDelay').value) || 0,
+    protected:       document.getElementById('fProtected').checked,
     responseBody:    document.getElementById('fBody').value,
     responseHeaders: collectHeaders(),
   };
@@ -825,58 +984,39 @@ async function saveRoute() {
     }
   }
 
-  if (!res.ok) {
-    const msg = await res.text();
-    toast(msg || 'Save failed', 'err');
-    return;
-  }
+  if (!res.ok) { toast(await res.text() || 'Save failed', 'err'); return; }
   renderRoutes();
 }
 
 async function deleteRoute() {
   if (!selectedId || !confirm('Delete this route?')) return;
   const res = await api(`/api/routes/${selectedId}`, { method: 'DELETE' });
-  if (res.ok) {
-    delete routes[selectedId];
-    cancelEdit();
-    toast('Route deleted');
-  } else {
-    toast('Delete failed', 'err');
-  }
+  if (res.ok) { delete routes[selectedId]; cancelEdit(); toast('Route deleted'); }
+  else toast('Delete failed', 'err');
 }
 
 function cancelEdit() {
-  selectedId = null;
-  isNew = false;
+  selectedId = null; isNew = false;
   document.getElementById('editorEmpty').style.display = '';
-  document.getElementById('editorForm').style.display = 'none';
+  document.getElementById('editorForm').style.display  = 'none';
   renderRoutes();
 }
 
 // ── Mock server ───────────────────────────────────────────────────────────────
 async function startMock() {
   const port = parseInt(document.getElementById('portInput').value) || 3000;
-  const res = await api('/api/mock/start', {
-    method: 'POST',
-    body: JSON.stringify({ port }),
-  });
-  if (!res.ok) {
-    const msg = await res.text();
-    toast(msg || 'Could not start', 'err');
-  }
+  const res = await api('/api/mock/start', { method: 'POST', body: JSON.stringify({ port }) });
+  if (!res.ok) toast(await res.text() || 'Could not start', 'err');
 }
 
 async function stopMock() {
   const res = await api('/api/mock/stop', { method: 'POST' });
-  if (!res.ok) {
-    const msg = await res.text();
-    toast(msg || 'Could not stop', 'err');
-  }
+  if (!res.ok) toast(await res.text() || 'Could not stop', 'err');
 }
 
 function applyStatus(running, port) {
-  const pill     = document.getElementById('statusPill');
-  const txt      = document.getElementById('statusText');
+  const pill    = document.getElementById('statusPill');
+  const txt     = document.getElementById('statusText');
   const startBtn = document.getElementById('startBtn');
   const stopBtn  = document.getElementById('stopBtn');
   const portIn   = document.getElementById('portInput');
@@ -894,6 +1034,7 @@ function applyStatus(running, port) {
     stopBtn.style.display  = 'none';
     portIn.disabled = false;
   }
+  updateCurlExample();
 }
 
 // ── Logs ──────────────────────────────────────────────────────────────────────
@@ -901,60 +1042,157 @@ function renderLogs() {
   const body = document.getElementById('logsBody');
   document.getElementById('logsCount').textContent = logs.length;
 
-  if (logs.length === 0) {
+  if (!logs.length) {
     body.innerHTML = '<div class="empty-hint">No requests captured yet. Start the mock server and call it from your frontend.</div>';
     return;
   }
 
-  body.innerHTML = logs.map((l, i) => `
-    <div class="log-row" onclick="openDrawer(${i})">
+  body.innerHTML = logs.map((l, i) => {
+    let tag;
+    if (l.authFailed) tag = `<span class="tag tag-auth">auth failed</span>`;
+    else if (l.matched) tag = `<span class="tag tag-match">matched</span>`;
+    else tag = `<span class="tag tag-nomatch">no match</span>`;
+
+    return `<div class="log-row" onclick="openDrawer(${i})">
       <span class="m-badge ${mClass(l.method)}">${mLabel(l.method)}</span>
       <span class="log-sc ${scClass(l.statusCode)}">${l.statusCode}</span>
       <span class="log-path" title="${esc(l.path)}">${esc(l.path)}</span>
-      <span class="match-tag ${l.matched ? 'yes' : 'no'}">${l.matched ? 'matched' : 'no match'}</span>
+      ${tag}
       <span class="log-time">${fmtTime(l.timestamp)}</span>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 async function clearLogs() {
   await api('/api/logs/clear', { method: 'POST' });
 }
 
-// ── Drawer ────────────────────────────────────────────────────────────────────
+// ── Log drawer ────────────────────────────────────────────────────────────────
 function openDrawer(idx) {
   const l = logs[idx];
   if (!l) return;
 
-  document.getElementById('drawerTitle').textContent =
-    `${l.method} ${l.path}  →  ${l.statusCode}`;
+  let statusLabel = `${l.statusCode}`;
+  if (l.authFailed) statusLabel += '  🔒 auth failed';
 
-  const headers = Object.entries(l.headers || {})
-    .map(([k, v]) => `${k}: ${v}`).join('\n') || '(none)';
+  document.getElementById('drawerTitle').textContent =
+    `${l.method} ${l.path}  →  ${statusLabel}`;
+
+  const headers = Object.entries(l.headers || {}).map(([k, v]) => `${k}: ${v}`).join('\n') || '(none)';
   document.getElementById('drawerReqHeaders').textContent = headers;
 
   let body = l.body || '(empty)';
-  try {
-    if (body !== '(empty)') body = JSON.stringify(JSON.parse(body), null, 2);
-  } catch {}
+  try { if (body !== '(empty)') body = JSON.stringify(JSON.parse(body), null, 2); } catch {}
   document.getElementById('drawerReqBody').textContent = body;
 
   document.getElementById('drawer').style.display = 'flex';
 }
 
 function closeDrawer(e) {
-  if (!e || e.target === document.getElementById('drawer')) {
+  if (!e || e.target === document.getElementById('drawer'))
     document.getElementById('drawer').style.display = 'none';
+}
+
+// ── Auth Modal ────────────────────────────────────────────────────────────────
+async function loadAuth() {
+  const res = await api('/api/auth');
+  if (!res.ok) return;
+  authCfg = await res.json();
+  updateAuthBtn();
+}
+
+function updateAuthBtn() {
+  const btn = document.getElementById('authBtn');
+  if (authCfg.enabled) {
+    btn.textContent = '🔐 Auth ●';
+    btn.style.color = 'var(--success)';
+    btn.style.borderColor = 'rgba(63,185,80,0.4)';
+  } else {
+    btn.textContent = '🔐 Auth';
+    btn.style.color = '';
+    btn.style.borderColor = '';
   }
 }
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeDrawer();
-});
+function openAuthModal() {
+  const cfg = authCfg;
+  document.getElementById('authEnabled').checked   = !!cfg.enabled;
+  document.getElementById('authLoginPath').value   = cfg.loginPath  || '/auth/login';
+  document.getElementById('authTTL').value         = cfg.ttlSeconds || 3600;
+  document.getElementById('authUsername').value    = cfg.username   || 'admin';
+  document.getElementById('authPassword').value    = cfg.password   || 'secret';
+  document.getElementById('authSecret').value      = cfg.secret     || '';
+
+  const badge = document.getElementById('authStatusBadge');
+  badge.textContent = cfg.enabled ? 'enabled' : 'disabled';
+  badge.className   = `auth-badge ${cfg.enabled ? 'on' : 'off'}`;
+
+  updateCurlExample();
+  document.getElementById('authModal').style.display = 'flex';
+}
+
+function closeAuthModal() {
+  document.getElementById('authModal').style.display = 'none';
+}
+
+function onAuthBackdrop(e) {
+  if (e.target === document.getElementById('authModal')) closeAuthModal();
+}
+
+function onAuthEnabledChange() {
+  const enabled = document.getElementById('authEnabled').checked;
+  const badge = document.getElementById('authStatusBadge');
+  badge.textContent = enabled ? 'enabled' : 'disabled';
+  badge.className   = `auth-badge ${enabled ? 'on' : 'off'}`;
+}
+
+function regenSecret() {
+  const arr = new Uint8Array(32);
+  crypto.getRandomValues(arr);
+  const b64 = btoa(String.fromCharCode(...arr))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  document.getElementById('authSecret').value = b64;
+}
+
+function updateCurlExample() {
+  const port  = document.getElementById('portInput')?.value || '3000';
+  const path  = document.getElementById('authLoginPath')?.value || '/auth/login';
+  const user  = document.getElementById('authUsername')?.value || 'admin';
+  const pass  = document.getElementById('authPassword')?.value || 'secret';
+
+  document.getElementById('curlExample').textContent =
+    `# 1. Get a token\ncurl -X POST http://localhost:${port}${path} \\\n  -H 'Content-Type: application/json' \\\n  -d '{"username":"${user}","password":"${pass}"}'\n\n# 2. Call a protected route\ncurl http://localhost:${port}/api/protected \\\n  -H 'Authorization: Bearer <token>'`;
+}
+
+async function copyCurl() {
+  const text = document.getElementById('curlExample').textContent;
+  await navigator.clipboard.writeText(text);
+  toast('Copied to clipboard');
+}
+
+async function saveAuth() {
+  const payload = {
+    enabled:    document.getElementById('authEnabled').checked,
+    loginPath:  document.getElementById('authLoginPath').value.trim() || '/auth/login',
+    username:   document.getElementById('authUsername').value.trim(),
+    password:   document.getElementById('authPassword').value,
+    secret:     document.getElementById('authSecret').value.trim(),
+    ttlSeconds: parseInt(document.getElementById('authTTL').value) || 3600,
+  };
+  const res = await api('/api/auth', { method: 'PUT', body: JSON.stringify(payload) });
+  if (res.ok) {
+    authCfg = await res.json();
+    updateAuthBtn();
+    closeAuthModal();
+    toast('Auth settings saved');
+  } else {
+    toast('Failed to save', 'err');
+  }
+}
 
 // ── SSE ───────────────────────────────────────────────────────────────────────
 function connectSSE() {
   const es = new EventSource('/api/events');
-
   es.onmessage = ({ data }) => {
     const msg = JSON.parse(data);
     if (msg.type === 'status') {
@@ -968,16 +1206,20 @@ function connectSSE() {
       renderLogs();
     }
   };
-
-  es.onerror = () => {
-    es.close();
-    setTimeout(connectSSE, 3000);
-  };
+  es.onerror = () => { es.close(); setTimeout(connectSSE, 3000); };
 }
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeDrawer();
+    closeAuthModal();
+  }
+});
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 (async () => {
-  await loadRoutes();
+  await Promise.all([loadRoutes(), loadAuth()]);
   renderLogs();
   connectSSE();
 

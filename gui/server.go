@@ -35,6 +35,7 @@ func (s *Server) Start() error {
 	mux.HandleFunc("/api/mock/start", s.handleMockStart)
 	mux.HandleFunc("/api/mock/stop", s.handleMockStop)
 	mux.HandleFunc("/api/mock/status", s.handleMockStatus)
+	mux.HandleFunc("/api/auth", s.handleAuth)
 	mux.HandleFunc("/api/logs", s.handleLogs)
 	mux.HandleFunc("/api/logs/clear", s.handleLogsClear)
 	mux.HandleFunc("/api/events", s.handleSSE)
@@ -74,8 +75,7 @@ func (s *Server) handleRoutes(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		created := s.store.CreateRoute(&route)
-		writeJSON(w, http.StatusCreated, created)
+		writeJSON(w, http.StatusCreated, s.store.CreateRoute(&route))
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -150,6 +150,34 @@ func (s *Server) handleMockStop(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMockStatus(w http.ResponseWriter, r *http.Request) {
 	running, port := s.mock.Status()
 	writeJSON(w, http.StatusOK, map[string]any{"running": running, "port": port})
+}
+
+// ── auth API ──────────────────────────────────────────────────────────────────
+
+func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		writeJSON(w, http.StatusOK, s.store.GetAuth())
+	case http.MethodPut:
+		var cfg store.AuthConfig
+		if err := json.NewDecoder(r.Body).Decode(&cfg); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if cfg.LoginPath == "" {
+			cfg.LoginPath = "/auth/login"
+		}
+		if cfg.TTLSeconds <= 0 {
+			cfg.TTLSeconds = 3600
+		}
+		if cfg.Secret == "" {
+			cfg.Secret = s.store.GetAuth().Secret
+		}
+		s.store.SetAuth(cfg)
+		writeJSON(w, http.StatusOK, cfg)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
 }
 
 // ── logs API ──────────────────────────────────────────────────────────────────

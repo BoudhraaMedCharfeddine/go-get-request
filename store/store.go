@@ -1,6 +1,8 @@
 package store
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"sort"
 	"sync"
@@ -16,6 +18,7 @@ type Route struct {
 	ResponseHeaders map[string]string `json:"responseHeaders"`
 	ResponseBody    string            `json:"responseBody"`
 	DelayMs         int               `json:"delayMs"`
+	Protected       bool              `json:"protected"`
 	CreatedAt       time.Time         `json:"createdAt"`
 }
 
@@ -29,22 +32,55 @@ type Log struct {
 	StatusCode int               `json:"statusCode"`
 	Matched    bool              `json:"matched"`
 	RouteID    string            `json:"routeId,omitempty"`
+	AuthFailed bool              `json:"authFailed,omitempty"`
+}
+
+type AuthConfig struct {
+	Enabled    bool   `json:"enabled"`
+	LoginPath  string `json:"loginPath"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	Secret     string `json:"secret"`
+	TTLSeconds int    `json:"ttlSeconds"`
 }
 
 type Store struct {
 	mu      sync.RWMutex
 	routes  map[string]*Route
 	logs    []*Log
+	auth    AuthConfig
 	counter atomic.Int64
 }
 
 func New() *Store {
-	return &Store{routes: make(map[string]*Route)}
+	return &Store{
+		routes: make(map[string]*Route),
+		auth:   defaultAuth(),
+	}
+}
+
+func defaultAuth() AuthConfig {
+	return AuthConfig{
+		Enabled:    false,
+		LoginPath:  "/auth/login",
+		Username:   "admin",
+		Password:   "secret",
+		Secret:     generateSecret(),
+		TTLSeconds: 3600,
+	}
+}
+
+func generateSecret() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.RawURLEncoding.EncodeToString(b)
 }
 
 func (s *Store) nextID() string {
 	return fmt.Sprintf("%d-%d", time.Now().UnixMilli(), s.counter.Add(1))
 }
+
+// ── Routes ────────────────────────────────────────────────────────────────────
 
 func (s *Store) CreateRoute(r *Route) *Route {
 	s.mu.Lock()
@@ -99,6 +135,8 @@ func (s *Store) ListRoutes() []*Route {
 	return result
 }
 
+// ── Logs ──────────────────────────────────────────────────────────────────────
+
 func (s *Store) AddLog(l *Log) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -121,4 +159,18 @@ func (s *Store) ClearLogs() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.logs = s.logs[:0]
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+func (s *Store) GetAuth() AuthConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.auth
+}
+
+func (s *Store) SetAuth(a AuthConfig) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.auth = a
 }
