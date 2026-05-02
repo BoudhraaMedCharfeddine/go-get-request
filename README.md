@@ -15,6 +15,7 @@ Define routes, configure responses, start the server, and watch every incoming r
 - **Custom responses** — status code, headers, body, and optional delay (ms)
 - **Real-time logs** — every request appears instantly via SSE, with matched/unmatched status
 - **Request detail** — click any log entry to inspect headers and body
+- **JWT auth simulation** — mock login endpoint + token validation on protected routes
 - **CORS enabled** — mock server adds CORS headers automatically, frontends can call it directly
 - **Zero dependencies** — Go standard library only
 
@@ -69,7 +70,43 @@ Your frontend can now call `http://localhost:3000` and receive the configured re
 
 ### 3. Watch requests
 
-Every incoming request appears in the **Request Logs** panel at the bottom — color-coded by status and flagged as `matched` or `no match`. Click a row to inspect the full request headers and body.
+Every incoming request appears in the **Request Logs** panel at the bottom — color-coded by status and flagged as `matched`, `no match`, or `auth failed`. Click a row to inspect the full request headers and body.
+
+---
+
+## JWT auth simulation
+
+Click **🔐 Auth** in the header to configure the auth simulation.
+
+| Setting | Description | Default |
+|---|---|---|
+| Login path | Endpoint that issues tokens | `/auth/login` |
+| Username / Password | Mock credentials | `admin` / `secret` |
+| Secret | HS256 signing key (auto-generated) | — |
+| TTL | Token lifetime in seconds | `3600` |
+
+**Enable** the simulation, then mark any route as **Require JWT token** in the route editor.
+
+### Flow
+
+```bash
+# 1. Get a token
+curl -X POST http://localhost:3000/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"secret"}'
+# → {"token":"eyJ...","type":"Bearer","expiresIn":3600}
+
+# 2. Call a protected route without token → 401
+curl http://localhost:3000/api/me
+# → {"error":"unauthorized: missing Authorization: Bearer header"}
+
+# 3. Call with a valid token → configured response
+curl http://localhost:3000/api/me \
+  -H 'Authorization: Bearer eyJ...'
+# → {"user":"admin"}
+```
+
+Tokens are signed with **HS256**. The secret can be regenerated at any time from the Auth modal.
 
 ---
 
@@ -103,10 +140,30 @@ DELETE /api/routes/:id      delete a route
   "path": "/api/users",
   "statusCode": 200,
   "delayMs": 0,
+  "protected": false,
   "responseHeaders": {
     "Content-Type": "application/json"
   },
   "responseBody": "{\"users\": []}"
+}
+```
+
+### Auth
+
+```
+GET /api/auth        get current auth config
+PUT /api/auth        update auth config
+```
+
+**Auth payload:**
+```json
+{
+  "enabled": true,
+  "loginPath": "/auth/login",
+  "username": "admin",
+  "password": "secret",
+  "secret": "your-hs256-secret",
+  "ttlSeconds": 3600
 }
 ```
 
@@ -133,9 +190,10 @@ GET  /api/events            SSE stream (real-time log + status updates)
 ```
 go-get-request/
 ├── main.go            entry point, CLI flag parsing
-├── store/store.go     in-memory store for routes and logs
+├── store/store.go     in-memory store for routes, logs, and auth config
 ├── events/bus.go      pub/sub bus for SSE broadcasting
-├── mock/server.go     dynamic mock HTTP server
+├── jwt/jwt.go         HS256 token signing and validation (stdlib only)
+├── mock/server.go     dynamic mock HTTP server with auth middleware
 └── gui/
     ├── server.go      GUI HTTP server, REST API, SSE handler
     └── web/
